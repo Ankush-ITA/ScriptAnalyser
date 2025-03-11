@@ -1,0 +1,6 @@
+
+RuleName                            Severity     ScriptName Line  Message
+--------                            --------     ---------- ----  -------
+PSUseSingularNouns                  Warning      Pester.ps1 4     The cmdlet 'Add-Numbers' uses a plural noun. A singula
+                                                                  r noun should be used instead.
+
