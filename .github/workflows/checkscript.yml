@@ -61,7 +61,11 @@ jobs:
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git add */*_lint_report.txt
+        for folder in ${{ env.FOLDERS }}; do
+          if [ -f ${folder%/}/python_lint_report.txt ] || [ -f ${folder%/}/powershell_lint_report.txt ] || [ -f ${folder%/}/bash_lint_report.txt ]; then
+            git add ${folder%/}/*_lint_report.txt
+          fi
+        done
         git commit -m 'Add individual lint reports for each folder'
         git push
       env:
