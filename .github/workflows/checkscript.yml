@@ -52,7 +52,10 @@ jobs:
 
     - name: Combine reports
       run: |
-        cat python_lint_report.txt powershell_lint_report.txt bash_lint_report.txt > combined_lint_report.txt
+        touch combined_lint_report.txt
+        if [ -f python_lint_report.txt ]; then cat python_lint_report.txt >> combined_lint_report.txt; fi
+        if [ -f powershell_lint_report.txt ]; then cat powershell_lint_report.txt >> combined_lint_report.txt; fi
+        if [ -f bash_lint_report.txt ]; then cat bash_lint_report.txt >> combined_lint_report.txt; fi
 
     - name: Upload report
       uses: actions/upload-artifact@v4
