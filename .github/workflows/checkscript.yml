@@ -57,8 +57,12 @@ jobs:
         if [ -f powershell_lint_report.txt ]; then cat powershell_lint_report.txt >> combined_lint_report.txt; fi
         if [ -f bash_lint_report.txt ]; then cat bash_lint_report.txt >> combined_lint_report.txt; fi
 
-    - name: Upload report
-      uses: actions/upload-artifact@v4
-      with:
-        name: lint-report
-        path: combined_lint_report.txt
+    - name: Commit report to repository
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add combined_lint_report.txt
+        git commit -m 'Add combined lint report'
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
