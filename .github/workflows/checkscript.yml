@@ -2,6 +2,9 @@ name: Lint and Analyze Code
 
 on: [push, pull_request]
 
+permissions:
+  contents: write
+
 jobs:
   lint:
     runs-on: ubuntu-latest
