@@ -20,7 +20,7 @@ jobs:
         pip install pylint
 
     - name: Set up PowerShell
-      uses: actions/setup-powershell@v2
+      uses: actions/setup-powershell@v1
 
     - name: Install ShellCheck
       run: |
