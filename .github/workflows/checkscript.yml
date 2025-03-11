@@ -31,41 +31,38 @@ jobs:
       run: |
         sudo apt-get install -y shellcheck
 
-    - name: Determine file types
-      id: determine_files
+    - name: Determine folders
+      id: determine_folders
       run: |
-        echo "PYTHON_FILES=$(git ls-files '*.py')" >> $GITHUB_ENV
-        echo "POWERSHELL_FILES=$(git ls-files '*.ps1')" >> $GITHUB_ENV
-        echo "BASH_FILES=$(git ls-files '*.sh')" >> $GITHUB_ENV
+        echo "FOLDERS=$(ls -d */)" >> $GITHUB_ENV
 
-    - name: Lint Python code
-      if: env.PYTHON_FILES != ''
+    - name: Lint code in each folder
       run: |
-        pylint ${{ env.PYTHON_FILES }} > python_lint_report.txt
+        for folder in ${{ env.FOLDERS }}; do
+          echo "Processing folder: $folder"
+          python_files=$(find $folder -name '*.py')
+          powershell_files=$(find $folder -name '*.ps1')
+          bash_files=$(find $folder -name '*.sh')
 
-    - name: Lint PowerShell code
-      if: env.POWERSHELL_FILES != ''
-      run: |
-        pwsh -Command "Invoke-ScriptAnalyzer -Path ${{ env.POWERSHELL_FILES }} | Out-File -FilePath powershell_lint_report.txt"
+          if [ -n "$python_files" ]; then
+            pylint $python_files > ${folder%/}/python_lint_report.txt
+          fi
 
-    - name: Lint Bash code
-      if: env.BASH_FILES != ''
-      run: |
-        shellcheck ${{ env.BASH_FILES }} > bash_lint_report.txt
+          if [ -n "$powershell_files" ]; then
+            pwsh -Command "Invoke-ScriptAnalyzer -Path $powershell_files | Out-File -FilePath ${folder%/}/powershell_lint_report.txt"
+          fi
 
-    - name: Combine reports
-      run: |
-        touch combined_lint_report.txt
-        if [ -f python_lint_report.txt ]; then cat python_lint_report.txt >> combined_lint_report.txt; fi
-        if [ -f powershell_lint_report.txt ]; then cat powershell_lint_report.txt >> combined_lint_report.txt; fi
-        if [ -f bash_lint_report.txt ]; then cat bash_lint_report.txt >> combined_lint_report.txt; fi
+          if [ -n "$bash_files" ]; then
+            shellcheck $bash_files > ${folder%/}/bash_lint_report.txt
+          fi
+        done
 
-    - name: Commit report to repository
+    - name: Commit reports to repository
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git add combined_lint_report.txt
-        git commit -m 'Add combined lint report'
+        git add */*_lint_report.txt
+        git commit -m 'Add individual lint reports for each folder'
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
