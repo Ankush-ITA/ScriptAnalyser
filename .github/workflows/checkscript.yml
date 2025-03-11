@@ -1,6 +1,12 @@
 name: Lint and Analyze Code
 
-on: [push, pull_request]
+on:
+  push:
+    paths:
+      - '**/*.zip'
+      - '**/*.py'
+      - '**/*.ps1'
+      - '**/*.sh'
 
 permissions:
   contents: write
@@ -12,6 +18,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
+      with:
+        ref: ${{ github.ref }}
 
     - name: Set up Python
       uses: actions/setup-python@v2
@@ -40,7 +48,7 @@ jobs:
     - name: Determine folders
       id: determine_folders
       run: |
-        echo "FOLDERS=$(ls -d */)" >> $GITHUB_ENV
+        echo "FOLDERS=$(ls -d */ | tr '\n' ' ')" >> $GITHUB_ENV
 
     - name: Lint code in each folder
       run: |
@@ -73,6 +81,6 @@ jobs:
           fi
         done
         git commit -m 'Add individual lint reports for each folder'
-        git push
+        git push origin ${{ github.ref }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
