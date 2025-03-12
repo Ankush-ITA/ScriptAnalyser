@@ -37,44 +37,44 @@ jobs:
       id: determine_files
       run: |
         echo "PYTHON_FILES<<EOF" >> $GITHUB_ENV
-        git ls-files '*.py' | sed 's/\(.*\)/"\1"/' >> $GITHUB_ENV
+        git ls-files '*.py' >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
         echo "POWERSHELL_FILES<<EOF" >> $GITHUB_ENV
-        git ls-files '*.ps1' | sed 's/\(.*\)/"\1"/' >> $GITHUB_ENV
+        git ls-files '*.ps1' >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
         echo "BASH_FILES<<EOF" >> $GITHUB_ENV
-        git ls-files '*.sh' | sed 's/\(.*\)/"\1"/' >> $GITHUB_ENV
+        git ls-files '*.sh' >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
     - name: Lint Python code
       if: env.PYTHON_FILES != ''
       run: |
-        echo "" > python_lint_report.txt
-        for file in ${{ env.PYTHON_FILES }}; do
+        > python_lint_report.txt
+        while IFS= read -r file; do
           [ -n "$file" ] && pylint "$file" >> python_lint_report.txt || true
-        done
+        done <<< "${{ env.PYTHON_FILES }}"
 
     - name: Lint PowerShell code
       if: env.POWERSHELL_FILES != ''
       run: |
-        echo "" > powershell_lint_report.txt
-        for file in ${{ env.POWERSHELL_FILES }}; do
-          [ -n "$file" ] && pwsh -Command "Invoke-ScriptAnalyzer -Path $file" >> powershell_lint_report.txt || true
-        done
+        > powershell_lint_report.txt
+        while IFS= read -r file; do
+          [ -n "$file" ] && pwsh -Command "Invoke-ScriptAnalyzer -Path '$file'" >> powershell_lint_report.txt || true
+        done <<< "${{ env.POWERSHELL_FILES }}"
 
     - name: Lint Bash code
       if: env.BASH_FILES != ''
       run: |
-        echo "" > bash_lint_report.txt
-        for file in ${{ env.BASH_FILES }}; do
+        > bash_lint_report.txt
+        while IFS= read -r file; do
           [ -n "$file" ] && shellcheck "$file" >> bash_lint_report.txt || true
-        done
+        done <<< "${{ env.BASH_FILES }}"
 
     - name: Combine reports
       run: |
-        echo "" > combined_lint_report.txt
+        > combined_lint_report.txt
         [ -s python_lint_report.txt ] && cat python_lint_report.txt >> combined_lint_report.txt
         [ -s powershell_lint_report.txt ] && cat powershell_lint_report.txt >> combined_lint_report.txt
         [ -s bash_lint_report.txt ] && cat bash_lint_report.txt >> combined_lint_report.txt
