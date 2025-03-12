@@ -1,6 +1,12 @@
 name: Lint and Analyze Code
 
-on: [push, pull_request]
+on:
+  push:
+    paths:
+      - '**'  # This ensures any added file triggers the action
+    branches:
+      - '**'  # This ensures it runs on any branch
+
 
 jobs:
   lint:
