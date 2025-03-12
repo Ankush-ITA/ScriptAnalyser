@@ -3,10 +3,9 @@ name: Lint and Analyze Code
 on:
   push:
     paths:
-      - '**'  # This ensures any added file triggers the action
+      - '**'  # Trigger on any file addition
     branches:
-      - '**'  # This ensures it runs on any branch
-
+      - '**'  # Run on all branches
 
 jobs:
   lint:
@@ -37,31 +36,73 @@ jobs:
     - name: Determine file types
       id: determine_files
       run: |
-        echo "PYTHON_FILES=$(git ls-files '*.py')" >> $GITHUB_ENV
-        echo "POWERSHELL_FILES=$(git ls-files '*.ps1')" >> $GITHUB_ENV
-        echo "BASH_FILES=$(git ls-files '*.sh')" >> $GITHUB_ENV
+        # Determine Python files
+        python_files=$(git ls-files '*.py')
+        echo "PYTHON_FILES=$python_files" >> $GITHUB_ENV
+        
+        # Determine PowerShell files
+        powershell_files=$(git ls-files '*.ps1')
+        echo "POWERSHELL_FILES=$powershell_files" >> $GITHUB_ENV
+        
+        # Determine Bash files
+        bash_files=$(git ls-files '*.sh')
+        echo "BASH_FILES=$bash_files" >> $GITHUB_ENV
+
+        # Output the lists to the logs for debugging
+        echo "Python files: $python_files"
+        echo "PowerShell files: $powershell_files"
+        echo "Bash files: $bash_files"
 
     - name: Lint Python code
-      if: env.PYTHON_FILES != ''
+      if: ${{ env.PYTHON_FILES != '' }}
       run: |
-        pylint ${{ env.PYTHON_FILES }} > python_lint_report.txt
+        > python_lint_report.txt  # Only create the file if linting happens
+        while IFS= read -r file; do
+          [ -n "$file" ] && pylint "$file" >> python_lint_report.txt || true
+        done <<< "${{ env.PYTHON_FILES }}"
 
     - name: Lint PowerShell code
-      if: env.POWERSHELL_FILES != ''
+      if: ${{ env.POWERSHELL_FILES != '' }}
       run: |
-        pwsh -Command "Invoke-ScriptAnalyzer -Path ${{ env.POWERSHELL_FILES }} | Out-File -FilePath powershell_lint_report.txt"
+        > powershell_lint_report.txt  # Create the report if files exist
+        while IFS= read -r file; do
+          [ -n "$file" ] && pwsh -Command "Invoke-ScriptAnalyzer -Path '$file'" >> powershell_lint_report.txt || true
+        done <<< "${{ env.POWERSHELL_FILES }}"
 
     - name: Lint Bash code
-      if: env.BASH_FILES != ''
+      if: ${{ env.BASH_FILES != '' }}
       run: |
-        shellcheck ${{ env.BASH_FILES }} > bash_lint_report.txt
+        > bash_lint_report.txt  # Only create the file if linting happens
+        while IFS= read -r file; do
+          [ -n "$file" ] && shellcheck "$file" >> bash_lint_report.txt || true
+        done <<< "${{ env.BASH_FILES }}"
+
+    - name: Check report files before combining
+      run: |
+        echo "Checking if lint reports exist..."
+        if [ -f python_lint_report.txt ]; then
+          echo "python_lint_report.txt exists"
+        else
+          echo "No Python linting issues found"
+        fi
+        if [ -f bash_lint_report.txt ]; then
+          echo "bash_lint_report.txt exists"
+        else
+          echo "No Bash linting issues found"
+        fi
+        if [ -f powershell_lint_report.txt ]; then
+          echo "powershell_lint_report.txt exists"
+        else
+          echo "No PowerShell linting issues found"
+        fi
 
     - name: Combine reports
       run: |
-        touch combined_lint_report.txt
-        if [ -f python_lint_report.txt ]; then cat python_lint_report.txt >> combined_lint_report.txt; fi
-        if [ -f powershell_lint_report.txt ]; then cat powershell_lint_report.txt >> combined_lint_report.txt; fi
-        if [ -f bash_lint_report.txt ]; then cat bash_lint_report.txt >> combined_lint_report.txt; fi
+        > combined_lint_report.txt
+        # Only combine if report files exist and have content
+        [ -f python_lint_report.txt ] && cat python_lint_report.txt >> combined_lint_report.txt || echo "No Python linting issues found" >> combined_lint_report.txt
+        [ -f powershell_lint_report.txt ] && cat powershell_lint_report.txt >> combined_lint_report.txt || echo "No PowerShell linting issues found" >> combined_lint_report.txt
+        [ -f bash_lint_report.txt ] && cat bash_lint_report.txt >> combined_lint_report.txt || echo "No Bash linting issues found" >> combined_lint_report.txt
 
     - name: Upload report
       uses: actions/upload-artifact@v4
