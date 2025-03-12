@@ -37,9 +37,9 @@ jobs:
     - name: Determine file types
       id: determine_files
       run: |
-        echo "PYTHON_FILES=$(git ls-files '*.py')" >> $GITHUB_ENV
-        echo "POWERSHELL_FILES=$(git ls-files '*.ps1')" >> $GITHUB_ENV
-        echo "BASH_FILES=$(git ls-files '*.sh')" >> $GITHUB_ENV
+          echo "PYTHON_FILES=$(git ls-files '*.py' | tr '\n' ' ')" >> $GITHUB_ENV
+          echo "POWERSHELL_FILES=$(git ls-files '*.ps1' | tr '\n' ' ')" >> $GITHUB_ENV
+          echo "BASH_FILES=$(git ls-files '*.sh' | tr '\n' ' ')" >> $GITHUB_ENV
 
     - name: Lint Python code
       if: env.PYTHON_FILES != ''
