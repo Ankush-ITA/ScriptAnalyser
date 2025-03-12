@@ -36,27 +36,41 @@ jobs:
     - name: Determine file types
       id: determine_files
       run: |
-        echo "PYTHON_FILES=$(git ls-files '*.py' | tr '\n' ' ')" >> $GITHUB_ENV
-        echo "POWERSHELL_FILES=$(git ls-files '*.ps1' | tr '\n' '\n')" >> $GITHUB_ENV
-        echo "BASH_FILES=$(git ls-files '*.sh' | tr '\n' ' ')" >> $GITHUB_ENV
+        echo "PYTHON_FILES<<EOF" >> $GITHUB_ENV
+        git ls-files '*.py' >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+
+        echo "POWERSHELL_FILES<<EOF" >> $GITHUB_ENV
+        git ls-files '*.ps1' >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+
+        echo "BASH_FILES<<EOF" >> $GITHUB_ENV
+        git ls-files '*.sh' >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
 
     - name: Lint Python code
       if: env.PYTHON_FILES != ''
       run: |
-        pylint ${{ env.PYTHON_FILES }} > python_lint_report.txt || true
+        touch python_lint_report.txt
+        while IFS= read -r file; do
+          [ -n "$file" ] && pylint "$file" >> python_lint_report.txt || true
+        done <<< "${{ env.PYTHON_FILES }}"
 
     - name: Lint PowerShell code
       if: env.POWERSHELL_FILES != ''
       run: |
         touch powershell_lint_report.txt
         while IFS= read -r file; do
-          pwsh -Command "Invoke-ScriptAnalyzer -Path '$file'" >> powershell_lint_report.txt || true
+          [ -n "$file" ] && pwsh -Command "Invoke-ScriptAnalyzer -Path '$file'" >> powershell_lint_report.txt || true
         done <<< "${{ env.POWERSHELL_FILES }}"
 
     - name: Lint Bash code
       if: env.BASH_FILES != ''
       run: |
-        shellcheck ${{ env.BASH_FILES }} > bash_lint_report.txt || true
+        touch bash_lint_report.txt
+        while IFS= read -r file; do
+          [ -n "$file" ] && shellcheck "$file" >> bash_lint_report.txt || true
+        done <<< "${{ env.BASH_FILES }}"
 
     - name: Combine reports
       run: |
