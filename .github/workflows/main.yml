@@ -37,20 +37,20 @@ jobs:
       id: determine_files
       run: |
         # Determine Python files
-        echo "PYTHON_FILES<<EOF" >> $GITHUB_ENV
         python_files=$(git ls-files '*.py')
+        echo "PYTHON_FILES<<EOF" >> $GITHUB_ENV
         echo "$python_files" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
         
         # Determine PowerShell files
-        echo "POWERSHELL_FILES<<EOF" >> $GITHUB_ENV
         powershell_files=$(git ls-files '*.ps1')
+        echo "POWERSHELL_FILES<<EOF" >> $GITHUB_ENV
         echo "$powershell_files" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
         
         # Determine Bash files
-        echo "BASH_FILES<<EOF" >> $GITHUB_ENV
         bash_files=$(git ls-files '*.sh')
+        echo "BASH_FILES<<EOF" >> $GITHUB_ENV
         echo "$bash_files" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
@@ -62,7 +62,7 @@ jobs:
     - name: Lint Python code
       if: ${{ env.PYTHON_FILES != '' }}
       run: |
-        > python_lint_report.txt
+        > python_lint_report.txt  # Only create the file if linting happens
         while IFS= read -r file; do
           [ -n "$file" ] && pylint "$file" >> python_lint_report.txt || true
         done <<< "${{ env.PYTHON_FILES }}"
@@ -70,7 +70,7 @@ jobs:
     - name: Lint PowerShell code
       if: ${{ env.POWERSHELL_FILES != '' }}
       run: |
-        > powershell_lint_report.txt
+        > powershell_lint_report.txt  # Create the report if files exist
         while IFS= read -r file; do
           [ -n "$file" ] && pwsh -Command "Invoke-ScriptAnalyzer -Path '$file'" >> powershell_lint_report.txt || true
         done <<< "${{ env.POWERSHELL_FILES }}"
@@ -78,21 +78,37 @@ jobs:
     - name: Lint Bash code
       if: ${{ env.BASH_FILES != '' }}
       run: |
-        > bash_lint_report.txt
+        > bash_lint_report.txt  # Only create the file if linting happens
         while IFS= read -r file; do
           [ -n "$file" ] && shellcheck "$file" >> bash_lint_report.txt || true
         done <<< "${{ env.BASH_FILES }}"
 
     - name: Check report files before combining
       run: |
-        ls -l python_lint_report.txt powershell_lint_report.txt bash_lint_report.txt
+        echo "Checking if lint reports exist..."
+        if [ -f python_lint_report.txt ]; then
+          echo "python_lint_report.txt exists"
+        else
+          echo "No Python linting issues found"
+        fi
+        if [ -f bash_lint_report.txt ]; then
+          echo "bash_lint_report.txt exists"
+        else
+          echo "No Bash linting issues found"
+        fi
+        if [ -f powershell_lint_report.txt ]; then
+          echo "powershell_lint_report.txt exists"
+        else
+          echo "No PowerShell linting issues found"
+        fi
 
     - name: Combine reports
       run: |
         > combined_lint_report.txt
-        [ -s python_lint_report.txt ] && cat python_lint_report.txt >> combined_lint_report.txt || echo "No Python linting issues found" >> combined_lint_report.txt
-        [ -s powershell_lint_report.txt ] && cat powershell_lint_report.txt >> combined_lint_report.txt || echo "No PowerShell linting issues found" >> combined_lint_report.txt
-        [ -s bash_lint_report.txt ] && cat bash_lint_report.txt >> combined_lint_report.txt || echo "No Bash linting issues found" >> combined_lint_report.txt
+        # Only combine if report files exist and have content
+        [ -f python_lint_report.txt ] && cat python_lint_report.txt >> combined_lint_report.txt || echo "No Python linting issues found" >> combined_lint_report.txt
+        [ -f powershell_lint_report.txt ] && cat powershell_lint_report.txt >> combined_lint_report.txt || echo "No PowerShell linting issues found" >> combined_lint_report.txt
+        [ -f bash_lint_report.txt ] && cat bash_lint_report.txt >> combined_lint_report.txt || echo "No Bash linting issues found" >> combined_lint_report.txt
 
     - name: Upload report
       uses: actions/upload-artifact@v4
