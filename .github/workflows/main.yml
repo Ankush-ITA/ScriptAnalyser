@@ -37,21 +37,21 @@ jobs:
       id: determine_files
       run: |
         echo "PYTHON_FILES<<EOF" >> $GITHUB_ENV
-        git ls-files '*.py' >> $GITHUB_ENV
+        git ls-files '*.py' | sed 's/^/"/;s/$/"/' >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
         echo "POWERSHELL_FILES<<EOF" >> $GITHUB_ENV
-        git ls-files '*.ps1' >> $GITHUB_ENV
+        git ls-files '*.ps1' | sed 's/^/"/;s/$/"/' >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
         echo "BASH_FILES<<EOF" >> $GITHUB_ENV
-        git ls-files '*.sh' >> $GITHUB_ENV
+        git ls-files '*.sh' | sed 's/^/"/;s/$/"/' >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
     - name: Lint Python code
       if: env.PYTHON_FILES != ''
       run: |
-        touch python_lint_report.txt
+        echo "" > python_lint_report.txt
         while IFS= read -r file; do
           [ -n "$file" ] && pylint "$file" >> python_lint_report.txt || true
         done <<< "${{ env.PYTHON_FILES }}"
@@ -59,25 +59,25 @@ jobs:
     - name: Lint PowerShell code
       if: env.POWERSHELL_FILES != ''
       run: |
-        touch powershell_lint_report.txt
+        echo "" > powershell_lint_report.txt
         while IFS= read -r file; do
-          [ -n "$file" ] && pwsh -Command "Invoke-ScriptAnalyzer -Path '$file'" >> powershell_lint_report.txt || true
+          [ -n "$file" ] && pwsh -Command "Invoke-ScriptAnalyzer -Path $file" >> powershell_lint_report.txt || true
         done <<< "${{ env.POWERSHELL_FILES }}"
 
     - name: Lint Bash code
       if: env.BASH_FILES != ''
       run: |
-        touch bash_lint_report.txt
+        echo "" > bash_lint_report.txt
         while IFS= read -r file; do
           [ -n "$file" ] && shellcheck "$file" >> bash_lint_report.txt || true
         done <<< "${{ env.BASH_FILES }}"
 
     - name: Combine reports
       run: |
-        touch combined_lint_report.txt
-        [ -f python_lint_report.txt ] && cat python_lint_report.txt >> combined_lint_report.txt
-        [ -f powershell_lint_report.txt ] && cat powershell_lint_report.txt >> combined_lint_report.txt
-        [ -f bash_lint_report.txt ] && cat bash_lint_report.txt >> combined_lint_report.txt
+        echo "" > combined_lint_report.txt
+        [ -s python_lint_report.txt ] && cat python_lint_report.txt >> combined_lint_report.txt
+        [ -s powershell_lint_report.txt ] && cat powershell_lint_report.txt >> combined_lint_report.txt
+        [ -s bash_lint_report.txt ] && cat bash_lint_report.txt >> combined_lint_report.txt
 
     - name: Upload report
       uses: actions/upload-artifact@v4
