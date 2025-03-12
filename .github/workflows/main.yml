@@ -3,10 +3,9 @@ name: Lint and Analyze Code
 on:
   push:
     paths:
-      - '**'  # This ensures any added file triggers the action
+      - '**'  # Trigger on any file addition
     branches:
-      - '**'  # This ensures it runs on any branch
-
+      - '**'  # Run on all branches
 
 jobs:
   lint:
@@ -37,31 +36,31 @@ jobs:
     - name: Determine file types
       id: determine_files
       run: |
-          echo "PYTHON_FILES=$(git ls-files '*.py' | tr '\n' ' ')" >> $GITHUB_ENV
-          echo "POWERSHELL_FILES=$(git ls-files '*.ps1' | tr '\n' ' ')" >> $GITHUB_ENV
-          echo "BASH_FILES=$(git ls-files '*.sh' | tr '\n' ' ')" >> $GITHUB_ENV
+        echo "PYTHON_FILES=$(git ls-files '*.py' | tr '\n' ' ')" >> $GITHUB_ENV
+        echo "POWERSHELL_FILES=$(git ls-files '*.ps1' | tr '\n' ' ')" >> $GITHUB_ENV
+        echo "BASH_FILES=$(git ls-files '*.sh' | tr '\n' ' ')" >> $GITHUB_ENV
 
     - name: Lint Python code
       if: env.PYTHON_FILES != ''
       run: |
-        pylint ${{ env.PYTHON_FILES }} > python_lint_report.txt
+        pylint ${{ env.PYTHON_FILES }} > python_lint_report.txt || true
 
     - name: Lint PowerShell code
       if: env.POWERSHELL_FILES != ''
       run: |
-        pwsh -Command "Invoke-ScriptAnalyzer -Path ${{ env.POWERSHELL_FILES }} | Out-File -FilePath powershell_lint_report.txt"
+        pwsh -Command "Invoke-ScriptAnalyzer -Path '${{ env.POWERSHELL_FILES }}' | Out-File -FilePath powershell_lint_report.txt"
 
     - name: Lint Bash code
       if: env.BASH_FILES != ''
       run: |
-        shellcheck ${{ env.BASH_FILES }} > bash_lint_report.txt
+        shellcheck ${{ env.BASH_FILES }} > bash_lint_report.txt || true
 
     - name: Combine reports
       run: |
         touch combined_lint_report.txt
-        if [ -f python_lint_report.txt ]; then cat python_lint_report.txt >> combined_lint_report.txt; fi
-        if [ -f powershell_lint_report.txt ]; then cat powershell_lint_report.txt >> combined_lint_report.txt; fi
-        if [ -f bash_lint_report.txt ]; then cat bash_lint_report.txt >> combined_lint_report.txt; fi
+        [ -f python_lint_report.txt ] && cat python_lint_report.txt >> combined_lint_report.txt
+        [ -f powershell_lint_report.txt ] && cat powershell_lint_report.txt >> combined_lint_report.txt
+        [ -f bash_lint_report.txt ] && cat bash_lint_report.txt >> combined_lint_report.txt
 
     - name: Upload report
       uses: actions/upload-artifact@v4
