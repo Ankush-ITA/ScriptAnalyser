@@ -23,31 +23,28 @@ jobs:
     - name: Install Python linters
       run: |
         pip install pylint
-
     - name: Install PowerShell
       run: |
         sudo apt-get update
         sudo apt-get install -y powershell
-
     - name: Install ShellCheck
       run: |
         sudo apt-get install -y shellcheck
-
     - name: Determine file types
       id: determine_files
       run: |
         echo "PYTHON_FILES<<EOF" >> $GITHUB_ENV
         git ls-files '*.py' >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
-
         echo "POWERSHELL_FILES<<EOF" >> $GITHUB_ENV
         git ls-files '*.ps1' >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
-
         echo "BASH_FILES<<EOF" >> $GITHUB_ENV
         git ls-files '*.sh' >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
-
+        echo "Python files found: $(git ls-files '*.py')"
+        echo "PowerShell files found: $(git ls-files '*.ps1')"
+        echo "Bash files found: $(git ls-files '*.sh')"
     - name: Lint Python code
       if: env.PYTHON_FILES != ''
       run: |
@@ -55,7 +52,6 @@ jobs:
         while IFS= read -r file; do
           [ -n "$file" ] && pylint "$file" >> python_lint_report.txt || true
         done <<< "${{ env.PYTHON_FILES }}"
-
     - name: Lint PowerShell code
       if: env.POWERSHELL_FILES != ''
       run: |
@@ -63,7 +59,6 @@ jobs:
         while IFS= read -r file; do
           [ -n "$file" ] && pwsh -Command "Invoke-ScriptAnalyzer -Path '$file'" >> powershell_lint_report.txt || true
         done <<< "${{ env.POWERSHELL_FILES }}"
-
     - name: Lint Bash code
       if: env.BASH_FILES != ''
       run: |
@@ -71,14 +66,15 @@ jobs:
         while IFS= read -r file; do
           [ -n "$file" ] && shellcheck "$file" >> bash_lint_report.txt || true
         done <<< "${{ env.BASH_FILES }}"
-
+    - name: Check report files before combining
+      run: |
+        ls -l python_lint_report.txt powershell_lint_report.txt bash_lint_report.txt
     - name: Combine reports
       run: |
         > combined_lint_report.txt
-        [ -s python_lint_report.txt ] && cat python_lint_report.txt >> combined_lint_report.txt
-        [ -s powershell_lint_report.txt ] && cat powershell_lint_report.txt >> combined_lint_report.txt
-        [ -s bash_lint_report.txt ] && cat bash_lint_report.txt >> combined_lint_report.txt
-
+        [ -s python_lint_report.txt ] && cat python_lint_report.txt >> combined_lint_report.txt || echo "No Python linting issues found" >> combined_lint_report.txt
+        [ -s powershell_lint_report.txt ] && cat powershell_lint_report.txt >> combined_lint_report.txt || echo "No PowerShell linting issues found" >> combined_lint_report.txt
+        [ -s bash_lint_report.txt ] && cat bash_lint_report.txt >> combined_lint_report.txt || echo "No Bash linting issues found" >> combined_lint_report.txt
     - name: Upload report
       uses: actions/upload-artifact@v4
       with:
