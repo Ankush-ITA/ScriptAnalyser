@@ -37,7 +37,7 @@ jobs:
       id: determine_files
       run: |
         echo "PYTHON_FILES=$(git ls-files '*.py' | tr '\n' ' ')" >> $GITHUB_ENV
-        echo "POWERSHELL_FILES=$(git ls-files '*.ps1' | tr '\n' ' ')" >> $GITHUB_ENV
+        echo "POWERSHELL_FILES=$(git ls-files '*.ps1' | tr '\n' '\n')" >> $GITHUB_ENV
         echo "BASH_FILES=$(git ls-files '*.sh' | tr '\n' ' ')" >> $GITHUB_ENV
 
     - name: Lint Python code
@@ -48,7 +48,10 @@ jobs:
     - name: Lint PowerShell code
       if: env.POWERSHELL_FILES != ''
       run: |
-        pwsh -Command "Invoke-ScriptAnalyzer -Path '${{ env.POWERSHELL_FILES }}' | Out-File -FilePath powershell_lint_report.txt"
+        touch powershell_lint_report.txt
+        while IFS= read -r file; do
+          pwsh -Command "Invoke-ScriptAnalyzer -Path '$file'" >> powershell_lint_report.txt || true
+        done <<< "${{ env.POWERSHELL_FILES }}"
 
     - name: Lint Bash code
       if: env.BASH_FILES != ''
